@@ -6,55 +6,73 @@ import tkinter as tk
 import dropbox
 from time import sleep, time
 from pynput.keyboard import Key, Listener
+import cv2
 
 from modules.console import error, log, success, clear
 from modules.console.formats import TEXT_FORMATS
 
-TRANSITION_COOLDOWN = 2  # for what time image will appear on screen in seconds
-TRANSITION_DURATION = 2  # how long will duration take in seconds
+TRANSITION_COOLDOWN = 2
+TRANSITION_DURATION = 2
 DROPBOX_TOKEN = "sl.Brd9iG-BZTwjDeX6Hv9fXFoq0oDQdNn6irN7MjjCU4yuzZBunlcHbAzN8u2Lpiwy69sJIT_tCkR6fF2pEscljBBklSwp9Q0cylDrYt_Z7NRdGF_OWk86HmnhWy3pmWYBhP_vVc3dEhbAxAMa6XZf"
 
 dbx = dropbox.Dropbox(DROPBOX_TOKEN)
 dbx.users_get_current_account()
 
-def load_image(path, screen_width, screen_height):
+def load_media(path, screen_width, screen_height):
+    _, ext = os.path.splitext(path.lower())
     try:
-        image = Image.open(path).resize((screen_width, screen_height))
-        tk_image = ImageTk.PhotoImage(image)
-        return tk_image
+        if ext in {'.jpg', '.jpeg', '.png', '.gif'}:
+            image = Image.open(path).resize((screen_width, screen_height))
+            tk_media = ImageTk.PhotoImage(image)
+            return tk_media
+        elif ext in {'.mp4', '.avi', '.mkv'}:
+            cap = cv2.VideoCapture(path)
+            ret, frame = cap.read()
+            if ret:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                image = Image.fromarray(frame).resize((screen_width, screen_height))
+                tk_media = ImageTk.PhotoImage(image)
+                cap.release()
+                return tk_media
+            else:
+                error(f"Failed to load video frame from {path}")
+                return None
+        else:
+            error(f"Unsupported file format: {ext}")
+            return None
     except Exception as e:
-        error(f"Loading image {path}: {e}")
+        error(f"Loading media {path}: {e}")
         return None
 
-def display_image(canvas, image):
-    canvas.create_image(0, 0, anchor=tk.NW, image=image)
+def display_media(canvas, media):
+    canvas.create_image(0, 0, anchor=tk.NW, image=media)
 
-def blend_images(tk_current_image, tk_next_image, alpha):
-    blended_image = Image.blend(
-        ImageTk.getimage(tk_current_image),
-        ImageTk.getimage(tk_next_image),
+def blend_media(tk_current_media, tk_next_media, alpha):
+    blended_media = Image.blend(
+        ImageTk.getimage(tk_current_media),
+        ImageTk.getimage(tk_next_media),
         alpha
     )
-    return ImageTk.PhotoImage(blended_image)
+    return ImageTk.PhotoImage(blended_media)
 
-def transition_images(root, canvas, tk_current_image, tk_next_image):
+def transition_media(root, canvas, tk_current_media, tk_next_media):
     start_time = time()
     elapsed_time = 0
 
     while elapsed_time < TRANSITION_DURATION:
         alpha = min(1.0, elapsed_time / TRANSITION_DURATION)
-        tk_blended_image = blend_images(tk_current_image, tk_next_image, alpha)
-        display_image(canvas, tk_blended_image)
+        tk_blended_media = blend_media(tk_current_media, tk_next_media, alpha)
+        display_media(canvas, tk_blended_media)
         root.update_idletasks()
         root.update()
 
         elapsed_time = time() - start_time
 
-    display_image(canvas, tk_next_image)
+    display_media(canvas, tk_next_media)
     root.update_idletasks()
     root.update()
 
-def get_random_image(entries, current_path=None):
+def get_random_media(entries, current_path=None):
     if len(entries) > 0:
         random_index = random.randint(0, len(entries) - 1)
         entry = entries[random_index]
@@ -65,55 +83,54 @@ def get_random_image(entries, current_path=None):
 
             log(f"{TEXT_FORMATS.OKCYAN}Downloading{TEXT_FORMATS.ENDC} {TEXT_FORMATS.UNDERLINE}{entry.name}{TEXT_FORMATS.ENDC}...")
 
-            path = f"Images/{entry.name}"
+            path = f"Media/{entry.name}"
             dbx.files_download_to_file(path, entry.path_lower)
 
             success(f"{TEXT_FORMATS.OKBLUE}Downloaded{TEXT_FORMATS.ENDC} {TEXT_FORMATS.UNDERLINE}{entry.name}{TEXT_FORMATS.ENDC} to {TEXT_FORMATS.UNDERLINE}{path}{TEXT_FORMATS.ENDC}.")
 
             return path
 
-
-def display_images(_):
+def display_media_files(_):
     root = tk.Tk()
     root.attributes('-fullscreen', True)
 
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
 
-    log("Starting image transitions...")
+    log("Starting media transitions...")
 
     canvas = tk.Canvas(root, width=screen_width, height=screen_height)
     canvas.pack(fill=tk.BOTH, expand=True)
 
-    last_image = None
+    last_media = None
 
     while True:
-        entries = get_dropbox_images()
+        entries = get_dropbox_media()
 
-        if last_image is None:
-            last_image = get_random_image(entries)
+        if last_media is None:
+            last_media = get_random_media(entries)
 
-        current_path = last_image
-        next_path = get_random_image(entries, last_image)
+        current_path = last_media
+        next_path = get_random_media(entries, last_media)
 
-        last_image = next_path
+        last_media = next_path
 
         log(f"Attempting to transition from {TEXT_FORMATS.UNDERLINE}{current_path}{TEXT_FORMATS.ENDC} to {TEXT_FORMATS.UNDERLINE}{next_path}{TEXT_FORMATS.ENDC}...")
 
-        tk_current_image = load_image(current_path, screen_width, screen_height)
-        tk_next_image = load_image(next_path, screen_width, screen_height)
+        tk_current_media = load_media(current_path, screen_width, screen_height)
+        tk_next_media = load_media(next_path, screen_width, screen_height)
 
-        if tk_current_image is None or tk_next_image is None:
-            error("Failed to load images. Skipping transition.")
+        if tk_current_media is None or tk_next_media is None:
+            error("Failed to load media. Skipping transition.")
             continue
 
-        display_image(canvas, tk_current_image)
+        display_media(canvas, tk_current_media)
         root.update_idletasks()
         root.update()
 
         sleep(1)
 
-        transition_images(root, canvas, tk_current_image, tk_next_image)
+        transition_media(root, canvas, tk_current_media, tk_next_media)
 
         success(f"Transition from {TEXT_FORMATS.UNDERLINE}{current_path}{TEXT_FORMATS.ENDC} to {TEXT_FORMATS.UNDERLINE}{next_path}{TEXT_FORMATS.ENDC} complete.")
 
@@ -125,7 +142,7 @@ def display_images(_):
 
         sleep(TRANSITION_COOLDOWN)
 
-def get_dropbox_images():
+def get_dropbox_media():
     return dbx.files_list_folder('/Slideshow').entries
 
 def keyboard_listener(_):
@@ -145,7 +162,7 @@ def main():
     thread_1 = Thread(target=keyboard_listener, args=(10,))
     thread_1.start()
 
-    thread_2 = Thread(target=display_images, args=(10,))
+    thread_2 = Thread(target=display_media_files, args=(10,))
     thread_2.start()
 
     thread_1.join()
