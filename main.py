@@ -12,7 +12,7 @@ from pynput.keyboard import Key, Listener
 
 transition_cooldown = 2  # for what time image will appear on screen in seconds
 transition_duration = 2  # how long will duration take in seconds
-dropbox_token = "sl.BrP7zigSI2Rd49V85uDiIj5Gqby8UBhs2bZtD5pyctN5Kjjd8vWkDjMUdLq28WrjR81hoX7F2YiidolvqjbWRlT1Hi6iaq7Z5UYqqxYTj_nsv-PiQWlc4ACp4jlqRfHlWnfQeRYMecoIsWs_98Mb"
+dropbox_token = "sl.Brd9iG-BZTwjDeX6Hv9fXFoq0oDQdNn6irN7MjjCU4yuzZBunlcHbAzN8u2Lpiwy69sJIT_tCkR6fF2pEscljBBklSwp9Q0cylDrYt_Z7NRdGF_OWk86HmnhWy3pmWYBhP_vVc3dEhbAxAMa6XZf"
 
 dbx = dropbox.Dropbox(dropbox_token)
 dbx.users_get_current_account()
@@ -137,8 +137,6 @@ def keyboard_listener(_):
     def on_release(key):
         if key == Key.esc:
             console.log("Exiting...")
-            sleep(3)
-
             os._exit(0)
 
     
