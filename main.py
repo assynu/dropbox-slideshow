@@ -3,18 +3,18 @@ import random
 from threading import Thread
 from PIL import Image, ImageTk
 import tkinter as tk
-import modules.console as console
 import dropbox
 from time import sleep, time
-from modules.console.formats import TEXT_FORMATS
 from pynput.keyboard import Key, Listener
 
+from modules.console import error, log, success, clear
+from modules.console.formats import TEXT_FORMATS
 
-transition_cooldown = 2  # for what time image will appear on screen in seconds
-transition_duration = 2  # how long will duration take in seconds
-dropbox_token = "sl.Brd9iG-BZTwjDeX6Hv9fXFoq0oDQdNn6irN7MjjCU4yuzZBunlcHbAzN8u2Lpiwy69sJIT_tCkR6fF2pEscljBBklSwp9Q0cylDrYt_Z7NRdGF_OWk86HmnhWy3pmWYBhP_vVc3dEhbAxAMa6XZf"
+TRANSITION_COOLDOWN = 2  # for what time image will appear on screen in seconds
+TRANSITION_DURATION = 2  # how long will duration take in seconds
+DROPBOX_TOKEN = "sl.Brd9iG-BZTwjDeX6Hv9fXFoq0oDQdNn6irN7MjjCU4yuzZBunlcHbAzN8u2Lpiwy69sJIT_tCkR6fF2pEscljBBklSwp9Q0cylDrYt_Z7NRdGF_OWk86HmnhWy3pmWYBhP_vVc3dEhbAxAMa6XZf"
 
-dbx = dropbox.Dropbox(dropbox_token)
+dbx = dropbox.Dropbox(DROPBOX_TOKEN)
 dbx.users_get_current_account()
 
 def load_image(path, screen_width, screen_height):
@@ -23,7 +23,7 @@ def load_image(path, screen_width, screen_height):
         tk_image = ImageTk.PhotoImage(image)
         return tk_image
     except Exception as e:
-        console.error(f"Loading image {path}: {e}")
+        error(f"Loading image {path}: {e}")
         return None
 
 def display_image(canvas, image):
@@ -41,9 +41,8 @@ def transition_images(root, canvas, tk_current_image, tk_next_image):
     start_time = time()
     elapsed_time = 0
 
-
-    while elapsed_time < transition_duration:
-        alpha = min(1.0, elapsed_time / transition_duration)
+    while elapsed_time < TRANSITION_DURATION:
+        alpha = min(1.0, elapsed_time / TRANSITION_DURATION)
         tk_blended_image = blend_images(tk_current_image, tk_next_image, alpha)
         display_image(canvas, tk_blended_image)
         root.update_idletasks()
@@ -57,22 +56,22 @@ def transition_images(root, canvas, tk_current_image, tk_next_image):
 
 def get_random_image(entries, current_path=None):
     if len(entries) > 0:
-        radnomIndex = random.randint(0, len(entries) - 1)
-
-        entry = entries[radnomIndex]
+        random_index = random.randint(0, len(entries) - 1)
+        entry = entries[random_index]
 
         if isinstance(entry, dropbox.files.FileMetadata):
             if current_path is not None and entry.path_lower == current_path:
                 entry = entries[random.randint(0, len(entries) - 1)]
 
-            console.log(f"{TEXT_FORMATS.OKCYAN}Downloading{TEXT_FORMATS.ENDC} {TEXT_FORMATS.UNDERLINE}{entry.name}{TEXT_FORMATS.ENDC}...")
+            log(f"{TEXT_FORMATS.OKCYAN}Downloading{TEXT_FORMATS.ENDC} {TEXT_FORMATS.UNDERLINE}{entry.name}{TEXT_FORMATS.ENDC}...")
 
             path = f"Images/{entry.name}"
             dbx.files_download_to_file(path, entry.path_lower)
 
-            console.success(f"{TEXT_FORMATS.OKBLUE}Downloaded{TEXT_FORMATS.ENDC} {TEXT_FORMATS.UNDERLINE}{entry.name}{TEXT_FORMATS.ENDC} to {TEXT_FORMATS.UNDERLINE}{path}{TEXT_FORMATS.ENDC}.")
+            success(f"{TEXT_FORMATS.OKBLUE}Downloaded{TEXT_FORMATS.ENDC} {TEXT_FORMATS.UNDERLINE}{entry.name}{TEXT_FORMATS.ENDC} to {TEXT_FORMATS.UNDERLINE}{path}{TEXT_FORMATS.ENDC}.")
 
             return path
+
 
 def display_images(_):
     root = tk.Tk()
@@ -81,36 +80,32 @@ def display_images(_):
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
 
-    console.log("Starting image transitions...")
+    log("Starting image transitions...")
 
     canvas = tk.Canvas(root, width=screen_width, height=screen_height)
     canvas.pack(fill=tk.BOTH, expand=True)
 
-    photo_images = []
-
-    lastimage = None
+    last_image = None
 
     while True:
         entries = get_dropbox_images()
 
-        if lastimage is None:
-            lastimage = get_random_image(entries)
+        if last_image is None:
+            last_image = get_random_image(entries)
 
-        current_path = lastimage
-        next_path = get_random_image(entries, lastimage)
+        current_path = last_image
+        next_path = get_random_image(entries, last_image)
 
-        lastimage = next_path
+        last_image = next_path
 
-        console.log(f"Attempting to transition from {TEXT_FORMATS.UNDERLINE}{current_path}{TEXT_FORMATS.ENDC} to {TEXT_FORMATS.UNDERLINE}{next_path}{TEXT_FORMATS.ENDC}...")
+        log(f"Attempting to transition from {TEXT_FORMATS.UNDERLINE}{current_path}{TEXT_FORMATS.ENDC} to {TEXT_FORMATS.UNDERLINE}{next_path}{TEXT_FORMATS.ENDC}...")
 
         tk_current_image = load_image(current_path, screen_width, screen_height)
         tk_next_image = load_image(next_path, screen_width, screen_height)
 
         if tk_current_image is None or tk_next_image is None:
-            console.error("Failed to load images. Skipping transition.")
+            error("Failed to load images. Skipping transition.")
             continue
-
-        photo_images.extend([tk_current_image, tk_next_image])
 
         display_image(canvas, tk_current_image)
         root.update_idletasks()
@@ -120,15 +115,15 @@ def display_images(_):
 
         transition_images(root, canvas, tk_current_image, tk_next_image)
 
-        console.success(f"Transition from {TEXT_FORMATS.UNDERLINE}{current_path}{TEXT_FORMATS.ENDC} to {TEXT_FORMATS.UNDERLINE}{next_path}{TEXT_FORMATS.ENDC} complete.")
+        success(f"Transition from {TEXT_FORMATS.UNDERLINE}{current_path}{TEXT_FORMATS.ENDC} to {TEXT_FORMATS.UNDERLINE}{next_path}{TEXT_FORMATS.ENDC} complete.")
 
         if os.path.isfile(current_path):
             os.remove(current_path)
-            console.success(f"{TEXT_FORMATS.FAIL}Deleted {TEXT_FORMATS.ENDC}{TEXT_FORMATS.UNDERLINE}{current_path}{TEXT_FORMATS.ENDC}.")
+            success(f"{TEXT_FORMATS.FAIL}Deleted {TEXT_FORMATS.ENDC}{TEXT_FORMATS.UNDERLINE}{current_path}{TEXT_FORMATS.ENDC}.")
         else:
-            console.error("%s file not found" % current_path)
+            error("%s file not found" % current_path)
 
-        sleep(transition_cooldown)
+        sleep(TRANSITION_COOLDOWN)
 
 def get_dropbox_images():
     return dbx.files_list_folder('/Slideshow').entries
@@ -136,27 +131,25 @@ def get_dropbox_images():
 def keyboard_listener(_):
     def on_release(key):
         if key == Key.esc:
-            console.log("Exiting...")
+            log("Exiting...")
             os._exit(0)
 
-    
     while True:
         print(1)
         with Listener(on_release=on_release) as listener:
             listener.join()
 
 def main():
-    console.clear()
+    clear()
 
-    thread_1 = Thread(target = keyboard_listener, args = (10, ))
+    thread_1 = Thread(target=keyboard_listener, args=(10,))
     thread_1.start()
 
-    thread_2 = Thread(target = display_images, args = (10, ))
+    thread_2 = Thread(target=display_images, args=(10,))
     thread_2.start()
-    
+
     thread_1.join()
     thread_2.join()
-    # display_images()
 
 if __name__ == '__main__':
     main()
