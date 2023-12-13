@@ -1,155 +1,21 @@
-import os
-import random
-from threading import Thread
-from PIL import Image, ImageTk
-import tkinter as tk
-import dropbox
-from time import sleep, time
-from pynput.keyboard import Key, Listener
-
-from modules.console import error, log, success, clear
-from modules.console.formats import TEXT_FORMATS
-
-TRANSITION_COOLDOWN = 2  # for what time image will appear on screen in seconds
-TRANSITION_DURATION = 2  # how long will duration take in seconds
-DROPBOX_TOKEN = "sl.Brd9iG-BZTwjDeX6Hv9fXFoq0oDQdNn6irN7MjjCU4yuzZBunlcHbAzN8u2Lpiwy69sJIT_tCkR6fF2pEscljBBklSwp9Q0cylDrYt_Z7NRdGF_OWk86HmnhWy3pmWYBhP_vVc3dEhbAxAMa6XZf"
-
-dbx = dropbox.Dropbox(DROPBOX_TOKEN)
-dbx.users_get_current_account()
-
-def load_image(path, screen_width, screen_height):
-    try:
-        image = Image.open(path).resize((screen_width, screen_height))
-        tk_image = ImageTk.PhotoImage(image)
-        return tk_image
-    except Exception as e:
-        error(f"Loading image {path}: {e}")
-        return None
-
-def display_image(canvas, image):
-    canvas.create_image(0, 0, anchor=tk.NW, image=image)
-
-def blend_images(tk_current_image, tk_next_image, alpha):
-    blended_image = Image.blend(
-        ImageTk.getimage(tk_current_image),
-        ImageTk.getimage(tk_next_image),
-        alpha
-    )
-    return ImageTk.PhotoImage(blended_image)
-
-def transition_images(root, canvas, tk_current_image, tk_next_image):
-    start_time = time()
-    elapsed_time = 0
-
-    while elapsed_time < TRANSITION_DURATION:
-        alpha = min(1.0, elapsed_time / TRANSITION_DURATION)
-        tk_blended_image = blend_images(tk_current_image, tk_next_image, alpha)
-        display_image(canvas, tk_blended_image)
-        root.update_idletasks()
-        root.update()
-
-        elapsed_time = time() - start_time
-
-    display_image(canvas, tk_next_image)
-    root.update_idletasks()
-    root.update()
-
-def get_random_image(entries, current_path=None):
-    if len(entries) > 0:
-        random_index = random.randint(0, len(entries) - 1)
-        entry = entries[random_index]
-
-        if isinstance(entry, dropbox.files.FileMetadata):
-            if current_path is not None and entry.path_lower == current_path:
-                entry = entries[random.randint(0, len(entries) - 1)]
-
-            log(f"{TEXT_FORMATS.OKCYAN}Downloading{TEXT_FORMATS.ENDC} {TEXT_FORMATS.UNDERLINE}{entry.name}{TEXT_FORMATS.ENDC}...")
-
-            path = f"Images/{entry.name}"
-            dbx.files_download_to_file(path, entry.path_lower)
-
-            success(f"{TEXT_FORMATS.OKBLUE}Downloaded{TEXT_FORMATS.ENDC} {TEXT_FORMATS.UNDERLINE}{entry.name}{TEXT_FORMATS.ENDC} to {TEXT_FORMATS.UNDERLINE}{path}{TEXT_FORMATS.ENDC}.")
-
-            return path
-
-
-def display_images(_):
-    root = tk.Tk()
-    root.attributes('-fullscreen', True)
-
-    screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
-
-    log("Starting image transitions...")
-
-    canvas = tk.Canvas(root, width=screen_width, height=screen_height)
-    canvas.pack(fill=tk.BOTH, expand=True)
-
-    last_image = None
-
-    while True:
-        entries = get_dropbox_images()
-
-        if last_image is None:
-            last_image = get_random_image(entries)
-
-        current_path = last_image
-        next_path = get_random_image(entries, last_image)
-
-        last_image = next_path
-
-        log(f"Attempting to transition from {TEXT_FORMATS.UNDERLINE}{current_path}{TEXT_FORMATS.ENDC} to {TEXT_FORMATS.UNDERLINE}{next_path}{TEXT_FORMATS.ENDC}...")
-
-        tk_current_image = load_image(current_path, screen_width, screen_height)
-        tk_next_image = load_image(next_path, screen_width, screen_height)
-
-        if tk_current_image is None or tk_next_image is None:
-            error("Failed to load images. Skipping transition.")
-            continue
-
-        display_image(canvas, tk_current_image)
-        root.update_idletasks()
-        root.update()
-
-        sleep(1)
-
-        transition_images(root, canvas, tk_current_image, tk_next_image)
-
-        success(f"Transition from {TEXT_FORMATS.UNDERLINE}{current_path}{TEXT_FORMATS.ENDC} to {TEXT_FORMATS.UNDERLINE}{next_path}{TEXT_FORMATS.ENDC} complete.")
-
-        if os.path.isfile(current_path):
-            os.remove(current_path)
-            success(f"{TEXT_FORMATS.FAIL}Deleted {TEXT_FORMATS.ENDC}{TEXT_FORMATS.UNDERLINE}{current_path}{TEXT_FORMATS.ENDC}.")
-        else:
-            error("%s file not found" % current_path)
-
-        sleep(TRANSITION_COOLDOWN)
-
-def get_dropbox_images():
-    return dbx.files_list_folder('/Slideshow').entries
-
-def keyboard_listener(_):
-    def on_release(key):
-        if key == Key.esc:
-            log("Exiting...")
-            os._exit(0)
-
-    while True:
-        print(1)
-        with Listener(on_release=on_release) as listener:
-            listener.join()
+import threading
+import console
+import keyboardInput
+import slideshow
 
 def main():
-    clear()
+    console.Clear()
 
-    thread_1 = Thread(target=keyboard_listener, args=(10,))
-    thread_1.start()
+    console.Log("Initializing...")
 
-    thread_2 = Thread(target=display_images, args=(10,))
-    thread_2.start()
+    slideshowThread = threading.Thread(target=slideshow.Start)
+    keyboardLietenrThread = threading.Thread(target=keyboardInput.Listener)
 
-    thread_1.join()
-    thread_2.join()
+    slideshowThread.start()
+    keyboardLietenrThread.start()
+
+    slideshowThread.join()
+    keyboardLietenrThread.join()
 
 if __name__ == '__main__':
     main()
