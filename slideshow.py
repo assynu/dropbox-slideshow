@@ -13,7 +13,11 @@ def Start():
     transition_time = 5  # time in seconds for transition
 
     # Initialize Dropbox client
-    dbx = dropbox.Dropbox(access_token)
+    dbx = dropbox.Dropbox(
+        app_key='5nc9p3co7c67q48',
+        app_secret='07uqju6grj4qhdu',
+        oauth2_refresh_token='88WOBOYVU34AAAAAAAAAAREA8JfuVnSWkkijHCZfyiG44V0c3lZwpy-6uSn-shuy'
+    )
     
     cv2.namedWindow('Slideshow', cv2.WINDOW_NORMAL)
     cv2.setWindowProperty('Slideshow', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
