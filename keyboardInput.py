@@ -6,7 +6,7 @@ def Listener():
 
     def on_release(key):
         if key == Key.esc:
-            console.Log("Exiting...")
+            console.log("Exiting...")
             os._exit(0)
 
     while True:

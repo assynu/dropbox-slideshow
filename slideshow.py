@@ -6,7 +6,7 @@ def Start():
     import console
 
     # Configurable parameters
-    access_token = 'sl.BrrKbCA9pviKx2I3qkzQ6K-FGWPvz1CUFHwUk5-ZH9WgHppTx3fKgRp159ZYJVSrE9mRzLeOOUQ0LqE4BcY-00ZHSDYoZNhLeN6X3AEf0WOhhpIO_5GVK8HtNdo4t_YI5tgZMq8YykSfdSM_UsYE'
+    access_token = 'DROPBOX_ACCESS_TOKEN'
     dropbox_folder = '/Slideshow'
     local_folder = 'Media'
     display_time = 5  # time in seconds to display each image
@@ -14,9 +14,9 @@ def Start():
 
     # Initialize Dropbox client
     dbx = dropbox.Dropbox(
-        app_key='5nc9p3co7c67q48',
-        app_secret='07uqju6grj4qhdu',
-        oauth2_refresh_token='88WOBOYVU34AAAAAAAAAAREA8JfuVnSWkkijHCZfyiG44V0c3lZwpy-6uSn-shuy'
+        app_key='APP_KEY',
+        app_secret='APP_SECRET',
+        oauth2_refresh_token='REFRESH_TOKEN'
     )
     
     cv2.namedWindow('Slideshow', cv2.WINDOW_NORMAL)
@@ -39,7 +39,7 @@ def Start():
             # Download each file
             local_path = f'{local_folder}/{file.name}'
 
-            console.Log(f'Downloading \"{file.name}\"..')
+            console.log(f'Downloading \"{file.name}\"..')
 
             dbx.files_download_to_file(local_path, file.path_lower)
             

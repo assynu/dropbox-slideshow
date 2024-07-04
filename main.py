@@ -4,9 +4,9 @@ import keyboardInput
 import slideshow
 
 def main():
-    console.Clear()
+    console.clear()
 
-    console.Log("Initializing...")
+    console.log("Initializing...")
 
     slideshowThread = threading.Thread(target=slideshow.Start)
     keyboardLietenrThread = threading.Thread(target=keyboardInput.Listener)

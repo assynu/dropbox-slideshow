@@ -5,27 +5,27 @@ class TextFormats:
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'
     OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
+    warnING = '\033[93m'
     FAIL = '\033[91m'
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-def Clear():
-    print("\033[H\033[J")
-
-def log_message(message_type, message, color):
+def send_message(message_type, message, color):
     time = datetime.datetime.now().strftime("%Y %m %d | %H:%M:%S")
     print(f'<{TextFormats.UNDERLINE}{time}{TextFormats.ENDC}> [ {color}{message_type}{TextFormats.ENDC} ] {message}{TextFormats.ENDC}.')
 
-def Log(message):
-    log_message("LOG", message, TextFormats.OKBLUE)
+def clear():
+    print("\033[H\033[J")
 
-def Success(message):
-    log_message("SUCCESS", message, TextFormats.OKGREEN)
+def log(message):
+    send_message("Log", message, TextFormats.OKBLUE)
 
-def Warn(message):
-    log_message("WARN", message, TextFormats.WARNING)
+def success(message):
+    send_message("Success", message, TextFormats.OKGREEN)
 
-def Error(message):
-    log_message("ERROR", message, TextFormats.FAIL)
+def warn(message):
+    send_message("Warn", message, TextFormats.warnING)
+
+def error(message):
+    send_message("Error", message, TextFormats.FAIL)
