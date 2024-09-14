@@ -10,6 +10,8 @@ Before running, go into `slideshow.py` and fill in missing keys:
 - APP_SECRET
 - REFRESH_TOKEN
 
-# Maintenance 
+## ⚠️ Project Status: No Longer Maintained
 
-This script is **no longer maintained**, if you want to make any changes feel free to make a pull request or fork the repo
+This script was originally created as a quick fix for a specific issue and is not actively maintained. The code may not adhere to best practices or standards.
+
+However, contributions are welcome! Feel free to fork the repository or submit a pull request if you’d like to improve or extend the project.
